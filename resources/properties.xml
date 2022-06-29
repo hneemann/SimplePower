@@ -1,0 +1,31 @@
+<resources>
+
+    <properties>
+        <property id="mass_prop" type="float">99.4</property>
+        <property id="CwA_prop" type="float">0.6</property>
+        <property id="Rho_prop" type="float">1.22</property>
+        <property id="dtLoss_prop" type="float">2</property>
+    </properties>
+
+    <strings>
+       <string id="mass_title">Mass in kg</string>
+       <string id="CwA_title">CwA</string>
+       <string id="Rho_title">Air density in kg/m^3</string>
+       <string id="dtLoss_title">Drivetrain loss in %</string>
+    </strings>
+
+    <settings>
+        <setting propertyKey="@Properties.mass_prop" title="@Strings.mass_title">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.CwA_prop" title="@Strings.CwA_title">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.Rho_prop" title="@Strings.Rho_title">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.dtLoss_prop" title="@Strings.dtLoss_title">
+            <settingConfig type="numeric" />
+        </setting>
+    </settings>
+</resources>
