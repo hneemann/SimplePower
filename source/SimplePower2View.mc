@@ -14,18 +14,23 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     hidden var mCwA as Float;
     hidden var mRho as Float;
     hidden var mDtLoss as Float;
+    hidden var mIncludeAcc as Boolean;
 
     // Set the label of the data field here.
     function initialize() {
         SimpleDataField.initialize();
         label = "est. Power";
         grade = new Differentiate();
-        acc = new Differentiate();
 
         mMass = Properties.getValue("mass_prop") as Float;
         mCwA = Properties.getValue("CwA_prop") as Float;
         mRho = Properties.getValue("Rho_prop") as Float;
         mDtLoss = Properties.getValue("dtLoss_prop") as Float;
+        mIncludeAcc = Properties.getValue("includeAcc_prop") as Boolean;
+
+        if (mIncludeAcc) {
+            acc = new Differentiate();
+        }
     }
 
     // The given info object contains all the current workout
@@ -60,13 +65,15 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     }
 
     function calcPower(time as Float, speed as Float, dist as Float, alt as Float) as Float {
-        var ac =acc.add(time, speed);
         var gr= grade.add(dist, alt);
         var angle=Math.atan(gr);
-        var F_acc=ac*mMass;
         var F_grav=9.81*Math.sin(angle)*mMass;
         var F_drag=0.5*mCwA*mRho*speed*speed;
-        var F_sum=F_grav+F_drag+F_acc;
+        var F_sum=F_grav+F_drag;
+        if (mIncludeAcc) {
+            var ac =acc.add(time, speed);
+            F_sum+=ac*mMass;
+        }
         var P_Wheel=F_sum*speed;
         if (P_Wheel<0) {
             return P_Wheel;
