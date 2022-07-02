@@ -11,16 +11,18 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     hidden var acc as Differentiate;
     hidden var delaySpeed as Delay;
     hidden var delayAcc as Delay;
+    hidden var mValid as Boolean;
 
     hidden var mMass as Float;
     hidden var mCwA as Float;
     hidden var mRho as Float;
+    hidden var mCrr as Float;
     hidden var mDtLoss as Float;
 
     // Set the label of the data field here.
     function initialize() {
         SimpleDataField.initialize();
-        label = "est. Power/W";
+        label = "est. Power";
         grade = new Differentiate(15);
         acc = new Differentiate(15);
         delayAcc = new Delay(10);
@@ -34,6 +36,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
         mCwA = Properties.getValue("CwA_prop") as Float;
         mRho = Properties.getValue("Rho_prop") as Float;
         mDtLoss = Properties.getValue("dtLoss_prop") as Float;
+        mCrr = Properties.getValue("Crr_prop") as Float / 100;
     }
 
     //function getSettingsView() {
@@ -59,18 +62,25 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                                 if (info has :elapsedTime) {
                                     if (info.elapsedTime != null) {
                                         var time = (info.elapsedTime as Float)/1000.0;
-                                        var p = calcPower(time, speed, distance, altitude);
+                                        var p = calcPower(time, speed, distance, altitude).toNumber();
 
                                         if (info has :currentCadence) {
                                             if (info.currentCadence != null) {
                                                 var cad = info.currentCadence as Lang.Number;
                                                 if (cad<10) {
-                                                    p=0;
+                                                    return "0W";
                                                 }
                                             }
                                         }
+                                        if (p<0) {
+                                            p=0;
+                                        }
 
-                                        return p;
+                                        if (mValid) {
+                                            return p+"W";
+                                        } else {
+                                            return p+"W?";
+                                        }
 
 
                                     }
@@ -85,14 +95,17 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     }
 
     function calcPower(time as Float, speed as Float, dist as Float, alt as Float) as Float {
-        var gr= grade.add(dist, alt);
-        var ac =delayAcc.delay(acc.add(time, speed));
+        var gr = grade.add(dist, alt);
+        var ac = delayAcc.delay(acc.add(time, speed));
         var delayedSpeed=delaySpeed.delay(acc.yMean());
-        var angle=Math.atan(gr);
-        var F_grav=9.81*Math.sin(angle)*mMass;
-        var F_drag=0.5*mCwA*mRho*delayedSpeed*delayedSpeed;
-        var F_sum=F_grav + F_drag + ac*mMass;
-        var P_Wheel=F_sum*delayedSpeed;
+        var F_g    = 9.81*mMass;
+        var F_grav = sinatan(gr)*F_g;
+        var F_rol  = cosatan(gr)*F_g*mCrr;
+        var F_drag = 0.5*mCwA*mRho*delayedSpeed*delayedSpeed;
+        var F_acc  = ac*mMass;
+        var F_sum  = F_grav + F_drag + F_acc + F_rol;
+        mValid = abs(F_grav)>(abs(F_drag)+abs(F_acc))*4;
+        var P_Wheel = F_sum*delayedSpeed;
         if (P_Wheel<0) {
             return P_Wheel;
         } else {
@@ -230,4 +243,14 @@ function abs(x as Float) as Float {
         return -x;
     }
     return x;
+}
+
+// 3. order Taylor series of sin(atan(x))
+function sinatan(x as Float) as Float {
+    return x-(x*x*x)/2;
+}
+
+// 3. order Taylor series of cos(atan(x))
+function cosatan(x as Float) as Float {
+    return 1-(x*x)/2;
 }

@@ -5,6 +5,7 @@
         <property id="CwA_prop" type="float">0.6</property>
         <property id="Rho_prop" type="float">1.22</property>
         <property id="dtLoss_prop" type="float">2</property>
+        <property id="Crr_prop" type="float">0.2</property>
     </properties>
 
     <strings>
@@ -12,6 +13,7 @@
        <string id="CwA_title">CwA</string>
        <string id="Rho_title">Air density in kg/m^3</string>
        <string id="dtLoss_title">Drivetrain loss in %</string>
+       <string id="Crr_title">Coef. Rolling Res. in %</string>
     </strings>
 
     <settings>
@@ -25,6 +27,9 @@
             <settingConfig type="numeric" />
         </setting>
         <setting propertyKey="@Properties.dtLoss_prop" title="@Strings.dtLoss_title">
+            <settingConfig type="numeric" />
+        </setting>
+        <setting propertyKey="@Properties.Crr_prop" title="@Strings.Crr_title">
             <settingConfig type="numeric" />
         </setting>
     </settings>
