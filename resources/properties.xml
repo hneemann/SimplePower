@@ -2,7 +2,7 @@
 
     <properties>
         <property id="mass_prop" type="float">99.4</property>
-        <property id="CwA_prop" type="float">0.5</property>
+        <property id="CwA_prop" type="float">0.45</property>
         <property id="Rho_prop" type="float">1.22</property>
         <property id="dtLoss_prop" type="float">2</property>
         <property id="Crr_prop" type="float">0.2</property>
