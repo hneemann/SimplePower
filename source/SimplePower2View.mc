@@ -22,7 +22,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     // Set the label of the data field here.
     function initialize() {
         SimpleDataField.initialize();
-        label = "est. Power";
+        label = "est. Power/W";
         grade = new Differentiate(15);
         acc = new Differentiate(15);
         delayAcc = new Delay(10);
@@ -49,7 +49,6 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     // guarantee that compute() will be called before onUpdate().
     function compute(info as Activity.Info) as Numeric or Duration or String or Null {
         // See Activity.Info in the documentation for available information.
-        // See Activity.Info in the documentation for available information.
         if (info has :altitude) {
             if (info.altitude != null) {
                 var altitude = info.altitude as Float;
@@ -68,7 +67,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                                             if (info.currentCadence != null) {
                                                 var cad = info.currentCadence as Lang.Number;
                                                 if (cad<10) {
-                                                    return "0W";
+                                                    return 0;
                                                 }
                                             }
                                         }
@@ -76,13 +75,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                                             p=0;
                                         }
 
-                                        if (mValid) {
-                                            return p+"W";
-                                        } else {
-                                            return p+"W?";
-                                        }
-
-
+                                        return p;
                                     }
                                 }
                             }
@@ -91,7 +84,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                 }
             }
         }
-        return null;
+        return 0;
     }
 
     function calcPower(time as Float, speed as Float, dist as Float, alt as Float) as Float {
@@ -250,7 +243,7 @@ function sinatan(x as Float) as Float {
     return x-(x*x*x)/2;
 }
 
-// 3. order Taylor series of cos(atan(x))
+// 2. order Taylor series of cos(atan(x))
 function cosatan(x as Float) as Float {
     return 1-(x*x)/2;
 }
