@@ -5,13 +5,38 @@ import Toybox.Math;
 import Toybox.Time;
 import Toybox.WatchUi;
 
-class SimplePower2View extends WatchUi.SimpleDataField {
+class SimplePower2View extends WatchUi.DataField {
+    private const BORDER_PAD = 4;
+    private const UNITS_SPACING = 2;
+
+    private const _fonts as Array<FontDefinition> = [Graphics.FONT_XTINY, Graphics.FONT_TINY, Graphics.FONT_SMALL, Graphics.FONT_MEDIUM, Graphics.FONT_LARGE,
+             Graphics.FONT_NUMBER_MILD, Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_THAI_HOT] as Array<FontDefinition>;
+
+    // Label Variables
+    private const _labelString = "est. Power";
+    private const _labelFont = Graphics.FONT_SMALL;
+    private var _labelX as Number = 0;
+
+    // Font values
+    private const _unitsFont = Graphics.FONT_TINY;
+    private var _dataFont as FontDefinition = Graphics.FONT_XTINY;
+    private var _dataFontAscent as Number = 0;
+
+    // Power variables
+    private const _pwUnitsString = "W";
+    private const _pwUnitsStringError = "W?";
+    private var _pwUnitsWidth as Number?;
+    private var _pwX as Number = 0;
+    private var _pwY as Number = 0;
+
 
     hidden var grade as Differentiate;
     hidden var acc as Differentiate;
     hidden var delaySpeed as Delay;
     hidden var delayAcc as Delay;
-    hidden var mValid as Boolean;
+    hidden var dataValid as Boolean = false;
+    hidden var largeError as Boolean = false;
+    hidden var power as Number = 0;
 
     hidden var mMass as Float;
     hidden var mCwA as Float;
@@ -21,8 +46,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
 
     // Set the label of the data field here.
     function initialize() {
-        SimpleDataField.initialize();
-        label = "est. Power/W";
+        DataField.initialize();
         grade = new Differentiate(15);
         acc = new Differentiate(15);
         delayAcc = new Delay(10);
@@ -39,6 +63,93 @@ class SimplePower2View extends WatchUi.SimpleDataField {
         mCrr = Properties.getValue("Crr_prop") as Float / 100;
     }
 
+    //! Load your resources here
+    //! @param dc Device context
+    public function onLayout(dc as Dc) as Void {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var top = Graphics.getFontAscent(_labelFont) + BORDER_PAD;
+
+        // Units width does not change, compute only once
+        if (_pwUnitsWidth == null) {
+            _pwUnitsWidth = dc.getTextWidthInPixels(_pwUnitsStringError, _unitsFont) + UNITS_SPACING;
+        }
+        var pwUnitsWidth = _pwUnitsWidth as Number;
+
+        // Center the field label
+        _labelX = width / 2;
+
+        // Compute data position
+        var LayoutWidth = width - (2 * BORDER_PAD) - pwUnitsWidth;
+        var LayoutHeight = height - (2 * BORDER_PAD) - top;
+        var LayoutFontIdx = selectFont(dc, LayoutWidth, LayoutHeight);
+
+        _dataFont = _fonts[LayoutFontIdx];
+        _dataFontAscent = Graphics.getFontAscent(_dataFont);
+
+        // Compute the draw location of the Power Value
+        var textWidth = dc.getTextWidthInPixels("1000", _dataFont);
+         _pwX = BORDER_PAD + (LayoutWidth / 2) + (textWidth / 2);
+         _pwY = (height - top) / 2 + top - (_dataFontAscent / 2);
+    }
+
+    //! Get the largest font that fits in the given width and height
+    //! @param dc Device context
+    //! @param width Width to fit in
+    //! @param height Height to fit in
+    //! @return Index of the font that fits
+    private function selectFont(dc as Dc, width as Number, height as Number) as Number {
+        var testString = "1000"; // Dummy string to test data width
+        var fontIdx;
+        // Search through fonts from biggest to smallest
+        for (fontIdx = (_fonts.size() - 1); fontIdx > 0; fontIdx--) {
+            var dimensions = dc.getTextDimensions(testString, _fonts[fontIdx]);
+            if ((dimensions[0] <= width) && (dimensions[1] <= height)) {
+                // If this font fits, it is the biggest one that does
+                break;
+            }
+        }
+
+        return fontIdx;
+    }
+
+    //! Handle the update event
+    //! @param dc Device context
+    public function onUpdate(dc as Dc) as Void {
+        var bgColor = getBackgroundColor();
+        var fgColor = Graphics.COLOR_WHITE;
+
+        if (bgColor == Graphics.COLOR_WHITE) {
+            fgColor = Graphics.COLOR_BLACK;
+        }
+
+        dc.setColor(fgColor, bgColor);
+        dc.clear();
+
+        dc.setColor(fgColor, Graphics.COLOR_TRANSPARENT);
+
+        // Draw the field label
+        dc.drawText(_labelX, 0, _labelFont, _labelString, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Update status
+        var powerStr = "____";
+        if (dataValid) {
+            powerStr=power.format("%d");
+        }
+
+        // Draw Power Value
+        dc.drawText(_pwX, _pwY, _dataFont, powerStr, Graphics.TEXT_JUSTIFY_RIGHT);
+        var x = _pwX + UNITS_SPACING;
+        var y = _pwY + _dataFontAscent - Graphics.getFontAscent(_unitsFont);
+
+
+        if (largeError) {
+            dc.drawText(x, y, _unitsFont, _pwUnitsStringError, Graphics.TEXT_JUSTIFY_LEFT);
+        } else {
+            dc.drawText(x, y, _unitsFont, _pwUnitsString, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
     //function getSettingsView() {
     //    return [new AnalogSettingsView(), new AnalogSettingsDelegate()];
     //}
@@ -47,7 +158,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
     // information. Calculate a value and return it in this method.
     // Note that compute() and onUpdate() are asynchronous, and there is no
     // guarantee that compute() will be called before onUpdate().
-    function compute(info as Activity.Info) as Numeric or Duration or String or Null {
+    public function compute(info as Activity.Info) as Void {
         // See Activity.Info in the documentation for available information.
         if (info has :altitude) {
             if (info.altitude != null) {
@@ -67,7 +178,8 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                                             if (info.currentCadence != null) {
                                                 var cad = info.currentCadence as Lang.Number;
                                                 if (cad<10) {
-                                                    return 0;
+                                                    p = 0;
+                                                    largeError=false;
                                                 }
                                             }
                                         }
@@ -75,7 +187,8 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                                             p=0;
                                         }
 
-                                        return p;
+                                        power=p;
+                                        dataValid=true;
                                     }
                                 }
                             }
@@ -84,7 +197,6 @@ class SimplePower2View extends WatchUi.SimpleDataField {
                 }
             }
         }
-        return 0;
     }
 
     function calcPower(time as Float, speed as Float, dist as Float, alt as Float) as Float {
@@ -97,7 +209,7 @@ class SimplePower2View extends WatchUi.SimpleDataField {
         var F_drag = 0.5*mCwA*mRho*delayedSpeed*delayedSpeed;
         var F_acc  = ac*mMass;
         var F_sum  = F_grav + F_drag + F_acc + F_rol;
-        mValid = abs(F_grav)>(abs(F_drag)+abs(F_acc))*4;
+        largeError = abs(F_grav)<(abs(F_drag)+abs(F_acc))*4;
         var P_Wheel = F_sum*delayedSpeed;
         if (P_Wheel<0) {
             return P_Wheel;
