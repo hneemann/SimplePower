@@ -7,6 +7,7 @@ The power is calculated by adding the main forces acting to the bike and rider. 
 1. Gravitational Force
    
     $$\alpha = \arctan(gr/100)$$
+    
     $$F_{gr} = \sin(\alpha) \cdot m \cdot g$$
 2. Aerodynamic Drag
 
