@@ -48,9 +48,9 @@ class SimplePower2View extends WatchUi.DataField {
     function initialize() {
         DataField.initialize();
         grade = new Differentiate(15);
-        acc = new Differentiate(15);
-        delayAcc = new Delay(10);
-        delaySpeed = new Delay(10);
+        acc = new Differentiate(8);
+        delayAcc = new Delay(14);
+        delaySpeed = new Delay(14);
 
         onSettingsChanged();
     }
